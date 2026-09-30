@@ -17,20 +17,21 @@ const configuredPhoneNumber = business.phoneNumber.replace(/\D/g, "");
 
 document.querySelector("#current-year").textContent = new Date().getFullYear();
 
-menuToggle.addEventListener("click", () => {
-  const isOpen = menuToggle.getAttribute("aria-expanded") === "true";
-  menuToggle.setAttribute("aria-expanded", String(!isOpen));
-  menuToggle.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
-  siteNav.classList.toggle("is-open", !isOpen);
-});
+if (menuToggle && siteNav) {
+  menuToggle.addEventListener("click", () => {
+    const isOpen = menuToggle.getAttribute("aria-expanded") === "true";
+    menuToggle.setAttribute("aria-expanded", String(!isOpen));
+    menuToggle.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
+    siteNav.classList.toggle("is-open", !isOpen);
+  });
 
-siteNav.addEventListener("click", (event) => {
-  if (event.target.closest("a")) {
+  siteNav.addEventListener("click", (event) => {
+    if (!event.target.closest("a")) return;
     menuToggle.setAttribute("aria-expanded", "false");
     menuToggle.setAttribute("aria-label", "Open navigation");
     siteNav.classList.remove("is-open");
-  }
-});
+  });
+}
 
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -46,7 +47,9 @@ filterButtons.forEach((button) => {
     });
 
     const visibleCount = portfolioCards.filter((card) => !card.classList.contains("is-hidden")).length;
-    portfolioCounter.textContent = `${String(visibleCount).padStart(2, "0")} — ${String(portfolioCards.length).padStart(2, "0")}`;
+    if (portfolioCounter) {
+      portfolioCounter.textContent = `${String(visibleCount).padStart(2, "0")} — ${String(portfolioCards.length).padStart(2, "0")}`;
+    }
   });
 });
 
@@ -68,7 +71,7 @@ function updateProjectMetadata(card) {
 }
 
 function openProject(card, updateHistory = true) {
-  if (!card || projectDialog.open) return;
+  if (!card || !projectDialog || projectDialog.open) return;
   updateProjectMetadata(card);
   projectDialog.showModal();
   document.body.classList.add("dialog-open");
@@ -80,7 +83,7 @@ function openProject(card, updateHistory = true) {
 }
 
 function closeProject(updateHistory = true) {
-  if (!projectDialog.open) return;
+  if (!projectDialog || !projectDialog.open) return;
   projectDialog.close();
   document.body.classList.remove("dialog-open");
   document.title = "Wohlstand Events | Event Planner & Decorator in Abeokuta";
@@ -91,61 +94,68 @@ function closeProject(updateHistory = true) {
   }
 }
 
-portfolioCards.forEach((card) => {
-  card.querySelector(".portfolio-image-button").addEventListener("click", () => openProject(card));
-});
+if (projectDialog) {
+  portfolioCards.forEach((card) => {
+    card.querySelector(".portfolio-image-button")?.addEventListener("click", () => openProject(card));
+  });
 
-projectDialog.querySelector(".dialog-close").addEventListener("click", () => closeProject());
-projectDialog.addEventListener("click", (event) => {
-  if (event.target === projectDialog) closeProject();
-});
-projectDialog.addEventListener("cancel", (event) => {
-  event.preventDefault();
-  closeProject();
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && projectDialog.open) {
+  projectDialog.querySelector(".dialog-close").addEventListener("click", () => closeProject());
+  projectDialog.addEventListener("click", (event) => {
+    if (event.target === projectDialog) closeProject();
+  });
+  projectDialog.addEventListener("cancel", (event) => {
     event.preventDefault();
     closeProject();
-  }
-});
-projectDialog.addEventListener("close", () => document.body.classList.remove("dialog-open"));
-window.addEventListener("popstate", () => {
-  const projectId = new URLSearchParams(window.location.search).get("project");
-  const card = portfolioCards.find((portfolioCard) => portfolioCard.dataset.project === projectId);
-  if (card && !projectDialog.open) openProject(card, false);
-  if (!card && projectDialog.open) closeProject(false);
-});
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && projectDialog.open) {
+      event.preventDefault();
+      closeProject();
+    }
+  });
+  projectDialog.addEventListener("close", () => document.body.classList.remove("dialog-open"));
+  window.addEventListener("popstate", () => {
+    const projectId = new URLSearchParams(window.location.search).get("project");
+    const card = portfolioCards.find((portfolioCard) => portfolioCard.dataset.project === projectId);
+    if (card && !projectDialog.open) openProject(card, false);
+    if (!card && projectDialog.open) closeProject(false);
+  });
 
-const sharedProject = new URLSearchParams(window.location.search).get("project");
-if (sharedProject) {
-  const card = portfolioCards.find((portfolioCard) => portfolioCard.dataset.project === sharedProject);
-  if (card) openProject(card, false);
+  const sharedProject = new URLSearchParams(window.location.search).get("project");
+  if (sharedProject) {
+    const card = portfolioCards.find((portfolioCard) => portfolioCard.dataset.project === sharedProject);
+    if (card) openProject(card, false);
+  }
+
+  projectDialog.querySelector(".share-project").addEventListener("click", async () => {
+    const shareStatus = projectDialog.querySelector(".share-status");
+    const shareData = { title: document.querySelector("#dialog-title").textContent, url: window.location.href };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        shareStatus.textContent = "Project link ready to share.";
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareData.url);
+        shareStatus.textContent = "Project link copied.";
+      } else {
+        shareStatus.textContent = "Copy this page address to share the project.";
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") shareStatus.textContent = "Copy this page address to share the project.";
+    }
+  });
 }
 
-projectDialog.querySelector(".share-project").addEventListener("click", async () => {
-  const shareStatus = projectDialog.querySelector(".share-status");
-  const shareData = { title: document.querySelector("#dialog-title").textContent, url: window.location.href };
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-      shareStatus.textContent = "Project link ready to share.";
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareData.url);
-      shareStatus.textContent = "Project link copied.";
-    } else {
-      shareStatus.textContent = "Copy this page address to share the project.";
-    }
-  } catch (error) {
-    if (error.name !== "AbortError") shareStatus.textContent = "Copy this page address to share the project.";
-  }
-});
-
 function setContactFallback(event) {
-  if (configuredWhatsAppNumber) return;
+  const isPhoneLink = event.currentTarget.matches("[data-phone-link]");
+  if (isPhoneLink ? configuredPhoneNumber : configuredWhatsAppNumber) return;
   event.preventDefault();
-  formStatus.textContent = "Business contact details are being added. Please use the enquiry form for now.";
-  document.querySelector("#enquiry").scrollIntoView({ behavior: "smooth" });
+  if (formStatus && document.querySelector("#enquiry")) {
+    formStatus.textContent = "Business contact details are being added. Please use the enquiry form for now.";
+    document.querySelector("#enquiry").scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.href = "contact.html#enquiry";
+  }
 }
 
 document.querySelectorAll("[data-whatsapp-link]").forEach((link) => {
@@ -180,7 +190,7 @@ document.querySelectorAll("[data-social-link]").forEach((link) => {
   }
 });
 
-enquiryForm.addEventListener("submit", (event) => {
+enquiryForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!enquiryForm.reportValidity()) return;
 
