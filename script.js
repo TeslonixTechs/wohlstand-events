@@ -1,7 +1,7 @@
 const business = {
-  whatsappNumber: "",
-  phoneNumber: "",
-  tikTokUrl: ""
+  whatsappNumber: "+2348143180307",
+  phoneNumber: "+2348143180307",
+  tikTokUrl: "https://www.tiktok.com/@wohlstandecor"
 };
 
 const menuToggle = document.querySelector(".menu-toggle");
@@ -12,6 +12,7 @@ const portfolioCounter = document.querySelector("#portfolio-counter");
 const projectDialog = document.querySelector("#project-dialog");
 const enquiryForm = document.querySelector("#enquiry-form");
 const formStatus = document.querySelector("#form-status");
+const basePageTitle = document.title;
 const configuredWhatsAppNumber = business.whatsappNumber.replace(/\D/g, "");
 const configuredPhoneNumber = business.phoneNumber.replace(/\D/g, "");
 
@@ -86,7 +87,7 @@ function closeProject(updateHistory = true) {
   if (!projectDialog || !projectDialog.open) return;
   projectDialog.close();
   document.body.classList.remove("dialog-open");
-  document.title = "Wohlstand Events | Event Planner & Decorator in Abeokuta";
+  document.title = basePageTitle;
   if (updateHistory && new URLSearchParams(window.location.search).has("project")) {
     const projectUrl = new URL(window.location.href);
     projectUrl.searchParams.delete("project");
@@ -189,6 +190,12 @@ document.querySelectorAll("[data-social-link]").forEach((link) => {
     link.addEventListener("click", (event) => event.preventDefault());
   }
 });
+if (tikTokUrl) {
+  const socialNote = document.querySelector("[data-social-note]");
+  if (socialNote) {
+    socialNote.textContent = `Follow ${new URL(tikTokUrl).pathname.replace("/", "")} on TikTok.`;
+  }
+}
 
 enquiryForm?.addEventListener("submit", (event) => {
   event.preventDefault();
